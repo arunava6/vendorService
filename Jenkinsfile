@@ -1,12 +1,9 @@
-// Jenkinsfile - VendorService (REST service)
-// Pipeline: Gitea checkout -> Maven build/test -> SonarQube -> Quality Gate -> deploy WAR to Tomcat
-
 pipeline {
     agent any
 
     tools {
-    maven 'Apache Maven 3.9.3'
-    jdk 'OpenJDK-21'
+        maven 'Apache Maven 3.9.3'
+        jdk 'OpenJDK-21'
     }
 
     environment {
@@ -15,8 +12,6 @@ pipeline {
         WAR_FILE     = 'target/vendor.war'
 
         TOMCAT_URL   = 'http://YOUR_VM_HOST:8090'
-        TOMCAT_CREDS = credentials('tomcat-cred')
-
         SONAR_ENV    = 'SonarQube'
         SONAR_KEY    = 'ims-vendor'
     }
@@ -49,8 +44,8 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONAR_ENV}") {
-                    bat 'mvn -B sonar:sonar -Dsonar.projectKey=%SONAR_KEY% -Dsonar.projectName=%SONAR_KEY%'
+                withSonarQubeEnv('SonarQube') {
+                    bat "mvn sonar:sonar -Dsonar.projectKey=%SONAR_KEY% -Dsonar.projectName=%SONAR_KEY%"
                 }
             }
         }
@@ -65,16 +60,28 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
-                bat 'curl --fail --silent --show-error --upload-file "%WAR_FILE%" -u "%TOMCAT_CREDS%" "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%&update=true"'
+                withCredentials([usernamePassword(
+                    credentialsId: 'tomcat-cred',
+                    usernameVariable: 'TUSER',
+                    passwordVariable: 'TPASS'
+                )]) {
+                    bat """
+                    curl --fail --silent --show-error ^
+                    -u %TUSER%:%TPASS% ^
+                    --upload-file %WAR_FILE% ^
+                    %TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%&update=true
+                    """
+                }
             }
         }
 
         stage('Smoke Test') {
             steps {
-                bat returnStatus: true, script: 'curl --fail --silent --show-error "%TOMCAT_URL%%CONTEXT_PATH%/" -o NUL'
+                bat """
+                curl --fail --silent --show-error %TOMCAT_URL%%CONTEXT_PATH%/
+                """
             }
         }
-
     }
 
     post {
