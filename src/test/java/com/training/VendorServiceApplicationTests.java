@@ -16,7 +16,7 @@ public class VendorServiceApplicationTests {
 	@Test
 	public void contextLoads() {
 		logger.info("UNIT TEST STARTED");
-		assertEquals("STRING VALUE NOT SAME!","Spring Boot", "Spring Boot");
+		assertEquals("Spring Boot", "Spring Boot", "Mismatch in value");
 	}
 
 }
