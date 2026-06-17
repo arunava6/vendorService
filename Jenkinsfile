@@ -11,7 +11,9 @@ pipeline {
         CONTEXT_PATH = '/vendor'
         WAR_FILE     = 'target/vendor.war'
 
-        TOMCAT_URL   = 'http://YOUR_VM_HOST:8090'
+        // 🔴 UPDATE THIS if Tomcat is on another machine
+        TOMCAT_URL   = 'http://localhost:8081'
+
         SONAR_ENV    = 'SonarQube'
         SONAR_KEY    = 'ims-vendor'
     }
@@ -44,8 +46,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    bat "mvn sonar:sonar -Dsonar.projectKey=%SONAR_KEY% -Dsonar.projectName=%SONAR_KEY%"
+                withSonarQubeEnv("${SONAR_ENV}") {
+                    bat """
+                    mvn sonar:sonar ^
+                    -Dsonar.projectKey=%SONAR_KEY% ^
+                    -Dsonar.projectName=%SONAR_KEY%
+                    """
                 }
             }
         }
@@ -65,11 +71,12 @@ pipeline {
                     usernameVariable: 'TUSER',
                     passwordVariable: 'TPASS'
                 )]) {
+
                     bat """
                     curl --fail --silent --show-error ^
                     -u %TUSER%:%TPASS% ^
                     --upload-file %WAR_FILE% ^
-                    %TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%&update=true
+                    "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%^&update=true"
                     """
                 }
             }
@@ -78,7 +85,7 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 bat """
-                curl --fail --silent --show-error %TOMCAT_URL%%CONTEXT_PATH%/
+                curl --fail --silent --show-error "%TOMCAT_URL%%CONTEXT_PATH%/"
                 """
             }
         }
@@ -86,11 +93,11 @@ pipeline {
 
     post {
         success {
-            echo "Deployed ${APP_NAME} -> ${TOMCAT_URL}${CONTEXT_PATH}"
+            echo "SUCCESS: Deployed ${APP_NAME} -> ${TOMCAT_URL}${CONTEXT_PATH}"
         }
 
         failure {
-            echo "Pipeline FAILED for ${APP_NAME}"
+            echo "FAILED: Pipeline for ${APP_NAME}"
         }
 
         always {
