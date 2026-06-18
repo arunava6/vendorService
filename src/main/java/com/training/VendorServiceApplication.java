@@ -8,14 +8,12 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 @SpringBootApplication
 public class VendorServiceApplication extends SpringBootServletInitializer {
 
-	
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-		return builder.sources(VendorServiceApplication.class);
-	}	
-	
-	public static void main(String[] args) {
-		SpringApplication.run(VendorServiceApplication.class, args);
-	}
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+        return builder.sources(VendorServiceApplication.class);
+    }
 
+    public static void main(String[] args) {
+        SpringApplication.run(VendorServiceApplication.class, args);
+    }
 }
