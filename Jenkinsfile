@@ -11,7 +11,6 @@ pipeline {
         CONTEXT_PATH = '/vendor'
         WAR_FILE     = 'target/vendor.war'
 
-        // FIXED: must NOT be localhost
         TOMCAT_URL   = 'http://10.1.0.27:8081'
 
         SONAR_ENV    = 'SonarQube'
@@ -33,13 +32,13 @@ pipeline {
             }
         }
 
-        stage('Build & Unit Test') {
+        stage('Build & Test') {
             steps {
                 bat 'mvn -B clean verify'
             }
             post {
                 always {
-                    junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+                    junit 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -56,29 +55,22 @@ pipeline {
             }
         }
 
-        // ✅ FIXED: NO WEBHOOK, ONLY POLLING MODE
-        stage('Quality Gate') {
+        stage('Quality Gate (FAST MODE)') {
             steps {
                 script {
-                    timeout(time: 5, unit: 'MINUTES') {
-
-                        echo "Waiting for SonarQube Quality Gate result..."
-
+                    timeout(time: 2, unit: 'MINUTES') {
                         def qg = waitForQualityGate()
-
-                        echo "Quality Gate Status: ${qg.status}"
+                        echo "Quality Gate: ${qg.status}"
 
                         if (qg.status != 'OK') {
-                            error "❌ Quality Gate FAILED: ${qg.status}"
+                            error "Quality Gate FAILED"
                         }
-
-                        echo "✅ Quality Gate PASSED"
                     }
                 }
             }
         }
 
-        stage('Deploy to Tomcat') {
+        stage('Deploy') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'tomcat-cred',
@@ -87,10 +79,9 @@ pipeline {
                 )]) {
 
                     bat """
-                    curl --fail --silent --show-error ^
-                    -u %TUSER%:%TPASS% ^
+                    curl --fail -u %TUSER%:%TPASS% ^
                     --upload-file %WAR_FILE% ^
-                    "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%&update=true"
+                    "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%^&update=true"
                     """
                 }
             }
@@ -98,22 +89,12 @@ pipeline {
 
         stage('Smoke Test') {
             steps {
-                bat """
-                curl --fail --silent --show-error "%TOMCAT_URL%%CONTEXT_PATH%/"
-                """
+                bat "curl --fail %TOMCAT_URL%%CONTEXT_PATH%/"
             }
         }
     }
 
     post {
-        success {
-            echo "✅ SUCCESS: ${APP_NAME} deployed successfully"
-        }
-
-        failure {
-            echo "❌ FAILED: Pipeline execution failed"
-        }
-
         always {
             cleanWs()
         }
