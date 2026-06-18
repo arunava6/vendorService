@@ -1,4 +1,4 @@
-pipeline {
+]pipeline {
     agent any
 
     tools {
@@ -11,6 +11,7 @@ pipeline {
         CONTEXT_PATH = '/vendor'
         WAR_FILE     = 'target/vendor.war'
 
+        // FIXED: must NOT be localhost
         TOMCAT_URL   = 'http://10.1.0.27:8081'
 
         SONAR_ENV    = 'SonarQube'
@@ -55,20 +56,23 @@ pipeline {
             }
         }
 
-        // ✅ FIXED QUALITY GATE (RECOMMENDED APPROACH)
+        // ✅ FIXED: NO WEBHOOK, ONLY POLLING MODE
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    script {
+                script {
+                    timeout(time: 5, unit: 'MINUTES') {
+
+                        echo "Waiting for SonarQube Quality Gate result..."
+
                         def qg = waitForQualityGate()
 
-                        echo "Sonar Quality Gate status: ${qg.status}"
+                        echo "Quality Gate Status: ${qg.status}"
 
                         if (qg.status != 'OK') {
                             error "❌ Quality Gate FAILED: ${qg.status}"
-                        } else {
-                            echo "✅ Quality Gate PASSED"
                         }
+
+                        echo "✅ Quality Gate PASSED"
                     }
                 }
             }
@@ -86,7 +90,7 @@ pipeline {
                     curl --fail --silent --show-error ^
                     -u %TUSER%:%TPASS% ^
                     --upload-file %WAR_FILE% ^
-                    "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%^&update=true"
+                    "%TOMCAT_URL%/manager/text/deploy?path=%CONTEXT_PATH%&update=true"
                     """
                 }
             }
@@ -103,11 +107,11 @@ pipeline {
 
     post {
         success {
-            echo "✅ SUCCESS: Deployed ${APP_NAME} -> ${TOMCAT_URL}${CONTEXT_PATH}"
+            echo "✅ SUCCESS: ${APP_NAME} deployed successfully"
         }
 
         failure {
-            echo "❌ FAILED: Pipeline for ${APP_NAME}"
+            echo "❌ FAILED: Pipeline execution failed"
         }
 
         always {
