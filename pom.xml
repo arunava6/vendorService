@@ -18,8 +18,12 @@
 
     <packaging>war</packaging>
 
+    <!-- ✅ SONAR + JAVA PROPERTIES -->
     <properties>
         <java.version>17</java.version>
+
+        <!-- 🔥 SonarQube Server URL FIX -->
+        <sonar.host.url>http://10.1.0.27:9000</sonar.host.url>
     </properties>
 
     <dependencies>
@@ -65,7 +69,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- ✅ JACoCo Plugin (ADDED FIX) -->
+            <!-- ✅ JACoCo Plugin (Code Coverage) -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
