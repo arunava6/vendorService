@@ -16,6 +16,6 @@ public class VendorController {
              + "Database : MySQL Connected\n"
              + "API      : /vendor/controller/getVendors\n"
              + "-----------------------------------------\n"
-             + "Built with Spring Boot ❤️";
+             + "Built with Spring Boot!";
     }
 }
