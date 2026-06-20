@@ -1,8 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.training.test.controller.VendorControllerTest
--------------------------------------------------------------------------------
-Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 9.01 s <<< FAILURE! - in com.training.test.controller.VendorControllerTest
-indexVendorControllerTest  Time elapsed: 0.068 s  <<< FAILURE!
-java.lang.AssertionError: Response content expected:<Welcome to Spring Boot Vendor Service API!> but was:<>
-	at com.training.test.controller.VendorControllerTest.indexVendorControllerTest(VendorControllerTest.java:32)
-
