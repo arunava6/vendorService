@@ -57,8 +57,8 @@ pipeline {
             	mvn sonar:sonar ^
             	-Dsonar.host.url=%SONAR_HOST_URL% ^
             	-Dsonar.login=%SONAR_TOKEN% ^
-            	-Dsonar.projectKey=vendorservice ^
-            	-Dsonar.projectName=VendorService
+            	-Dsonar.projectKey=vendor-service ^
+            	-Dsonar.projectName=vendor-service
            	 """
         	}
     	}
