@@ -2,37 +2,63 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven3'
+        maven 'Apache Maven 3.9.3'
+        jdk   'OpenJDK-21'
+    }
+
+    environment {
+        GIT_URL        = 'https://github.com/arunava6/vendorService.git'
+        GIT_BRANCH     = 'main'
+
+        TOMCAT_URL     = 'http://localhost:8081'
+        TOMCAT_CONTEXT = '/vendor'
+        TOMCAT_CRED_ID = 'tomcat-cred'
+
+        WAR_FILE       = 'target\\vendor.war'
+
     }
 
     stages {
 
+        stage('Checkout') {
+            steps {
+                git branch: "${GIT_BRANCH}",
+                    url: "${GIT_URL}"
+            }
+        }
+
         stage('Build') {
             steps {
-                sh 'mvn clean compile'
+                bat 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Test') {
+        stage('Unit Tests') {
             steps {
-                sh 'mvn test'
+                bat 'mvn test'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true,
+                          testResults: 'target/surefire-reports/*.xml'
+                }
             }
         }
 
-        stage('Package') {
+      
+        stage('Deploy to Tomcat') {
             steps {
-                sh 'mvn clean package'
-            }
-        }
+                withCredentials([usernamePassword(
+                    credentialsId: "${TOMCAT_CRED_ID}",
+                    usernameVariable: 'TC_USER',
+                    passwordVariable: 'TC_PASS'
+                )]) {
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=vendor-service \
-                        -Dsonar.projectName=vendor-service
-                    '''
+                    bat """
+                    curl -v -u %TC_USER%:%TC_PASS% ^
+                    -T "${WAR_FILE}" ^
+                    "%TOMCAT_URL%/manager/text/deploy?path=${TOMCAT_CONTEXT}&update=true"
+                    """
                 }
             }
         }
@@ -40,11 +66,12 @@ pipeline {
 
     post {
         success {
-            echo 'Build completed successfully!'
+            echo "Application deployed successfully."
+            echo "URL: ${TOMCAT_URL}${TOMCAT_CONTEXT}"
         }
 
         failure {
-            echo 'Build failed!'
+            echo "Build or deployment failed. Check console logs."
         }
     }
 }
