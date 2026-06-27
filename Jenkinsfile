@@ -2,80 +2,37 @@ pipeline {
     agent any
 
     tools {
-        maven 'Apache Maven 3.9.3'
-        jdk   'OpenJDK-21'
-    }
-
-    environment {
-        GIT_URL        = 'http://localhost:3000/jaya/VendorService.git'
-        GIT_BRANCH     = 'main'
-        GIT_CRED_ID    = 'gitea-cred'
-
-        TOMCAT_URL     = 'http://10.1.0.27:8081'
-        TOMCAT_CONTEXT = '/vendor'
-        TOMCAT_CRED_ID = 'tomcat-cred'
-
-        WAR_FILE       = 'target\\vendor.war'
-
-        SONAR_HOST_URL = 'http://10.1.0.27:9000'
-        SONAR_CRED_ID  = 'sonar-token'
+        maven 'Maven3'
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                git branch: "${GIT_BRANCH}",
-                    credentialsId: "${GIT_CRED_ID}",
-                    url: "${GIT_URL}"
-            }
-        }
-
         stage('Build') {
             steps {
-                bat 'mvn clean package -DskipTests'
+                sh 'mvn clean compile'
             }
         }
 
-        stage('Unit Tests') {
+        stage('Test') {
             steps {
-                bat 'mvn test'
+                sh 'mvn test'
             }
-            post {
-                always {
-                    junit allowEmptyResults: true,
-                          testResults: 'target/surefire-reports/*.xml'
-                }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn clean package'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withCredentials([string(credentialsId: "${SONAR_CRED_ID}", variable: 'SONAR_TOKEN')]) {
-                    bat """
-                    mvn sonar:sonar ^
-                    -Dsonar.host.url=%SONAR_HOST_URL% ^
-                    -Dsonar.login=%SONAR_TOKEN% ^
-                    -Dsonar.projectKey=vendorservice ^
-                    -Dsonar.projectName=vendorservice
-                    """
-                }
-            }
-        }
-
-        stage('Deploy to Tomcat') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: "${TOMCAT_CRED_ID}",
-                    usernameVariable: 'TC_USER',
-                    passwordVariable: 'TC_PASS'
-                )]) {
-
-                    bat """
-                    curl -v -u %TC_USER%:%TC_PASS% ^
-                    -T "${WAR_FILE}" ^
-                    "%TOMCAT_URL%/manager/text/deploy?path=${TOMCAT_CONTEXT}&update=true"
-                    """
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=vendor-service \
+                        -Dsonar.projectName=vendor-service
+                    '''
                 }
             }
         }
@@ -83,12 +40,11 @@ pipeline {
 
     post {
         success {
-            echo "Application deployed successfully."
-            echo "URL: ${TOMCAT_URL}${TOMCAT_CONTEXT}"
+            echo 'Build completed successfully!'
         }
 
         failure {
-            echo "Build or deployment failed. Check console logs."
+            echo 'Build failed!'
         }
     }
 }
