@@ -15,7 +15,9 @@ pipeline {
         TOMCAT_CRED_ID = 'tomcat-cred'
 
         WAR_FILE       = 'target\\vendor.war'
-
+`		
+ 		SONAR_HOST_URL = 'http://localhost:9000'
+    	SONAR_CRED_ID  = 'SONAR-TOKEN'
     }
 
     stages {
@@ -44,6 +46,24 @@ pipeline {
                 }
             }
         }
+        
+        stage('SonarQube Analysis') {
+    		steps {
+        		withCredentials([string(
+            	credentialsId: "${SONAR_CRED_ID}",
+            	variable: 'SONAR_TOKEN'
+        		)]) {
+
+            	bat """
+            	mvn sonar:sonar ^
+            	-Dsonar.host.url=%SONAR_HOST_URL% ^
+            	-Dsonar.login=%SONAR_TOKEN% ^
+            	-Dsonar.projectKey=vendorservice ^
+            	-Dsonar.projectName=VendorService
+           	 """
+        	}
+    	}
+	}
 
       
         stage('Deploy to Tomcat') {
