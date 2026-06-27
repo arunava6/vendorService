@@ -14,8 +14,7 @@ pipeline {
         TOMCAT_CONTEXT = '/vendor'
         TOMCAT_CRED_ID = 'tomcat-cred'
 
-        WAR_FILE       = 'target\\vendor.war'
-`		
+        WAR_FILE       = 'target\\vendor.war'		
  		SONAR_HOST_URL = 'http://localhost:9000'
     	SONAR_CRED_ID  = 'SONAR-TOKEN'
     }
